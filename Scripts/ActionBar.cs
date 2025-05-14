@@ -19,6 +19,7 @@ public class ActionBar : MonoBehaviour
     [SerializeField] private RectTransform slotsParent;
     [SerializeField] private Text scoreText;
     [SerializeField] private GameObject defeatPanel;
+    [SerializeField] private AudioSource audioSFX;
 
     [Header("Settings")]
     [SerializeField] private int maxSlots = 7;
@@ -84,6 +85,16 @@ public class ActionBar : MonoBehaviour
 
     public void AddFigure(Figure fig)
     {
+        // Воспроизводим звук FigureClick при попадании в ActionBar
+        if (audioSFX != null)
+        {
+            AudioClip figureClickClip = Resources.Load<AudioClip>("Audio/FigureClick");
+            if (figureClickClip != null)
+            {
+                audioSFX.PlayOneShot(figureClickClip);
+            }
+        }
+        
         // Проверка на максимальное количество слотов
         if (slots.Count >= maxSlots)
         {
@@ -210,10 +221,12 @@ public class ActionBar : MonoBehaviour
                figures[1].MatchKey == figures[2].MatchKey;
     }
 
-    private void CheckWinCondition()
+    public void CheckWinCondition()
     {
         var remainingFigures = FindObjectsOfType<Figure>();
         int figuresInPlay = 0;
+        
+        Debug.Log($"Checking win condition. Total figures found: {remainingFigures.Length}");
         
         foreach (var fig in remainingFigures)
         {
@@ -234,11 +247,19 @@ public class ActionBar : MonoBehaviour
             if (!isInActionBar)
             {
                 figuresInPlay++;
+                Debug.Log($"Figure in play: {fig.name}, animal: {fig.Animal}");
+            }
+            else
+            {
+                Debug.Log($"Figure in ActionBar: {fig.name}, animal: {fig.Animal}");
             }
         }
+        
+        Debug.Log($"Figures in play: {figuresInPlay}");
 
         if (figuresInPlay == 0)
         {
+            Debug.Log("Win condition met!");
             GameManager.Instance.OnGameOver(true);
         }
     }

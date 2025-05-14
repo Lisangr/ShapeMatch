@@ -53,6 +53,7 @@ public class Figure : MonoBehaviour, IPointerClickHandler
     [SerializeField] private Image frameImage; // Рамка
     [SerializeField] private Image backgroundImage; // Фон
     [SerializeField] private Image animalImage;
+    [SerializeField] private AudioSource audioSFX; // Добавляем ссылку на AudioSource
 
     [Header("Animation Settings")]
     [SerializeField] private float moveDuration = 0.5f;
@@ -72,6 +73,7 @@ public class Figure : MonoBehaviour, IPointerClickHandler
     private MoveToGrid moveToGrid;
     private float lastMovementTime;
     private Vector3 lastPosition;
+    private AudioSource cachedAudioSFX;
 
     private static readonly Dictionary<FigureColor, Color> colorMap = new Dictionary<FigureColor, Color>
     {
@@ -233,6 +235,41 @@ public class Figure : MonoBehaviour, IPointerClickHandler
         
         Debug.Log("Figure clicked!");
         
+        // Воспроизводим звук Action при клике
+        GameObject audioSFXObj = GameObject.Find("AudioSFX");
+        if (audioSFXObj != null)
+        {
+            Debug.Log("Found AudioSFX object");
+            AudioSource audioSource = audioSFXObj.GetComponent<AudioSource>();
+            if (audioSource != null)
+            {
+                Debug.Log("Found AudioSource component");
+                AudioClip actionClip = Resources.Load<AudioClip>("Audio/Action");
+                if (actionClip != null)
+                {
+                    Debug.Log("Playing Action sound");
+                    audioSource.PlayOneShot(actionClip);
+                }
+                else
+                {
+                    Debug.LogError("Action clip not found at Audio/Action");
+                    // Запасной вариант - воспроизвести клип по умолчанию
+                    if (audioSource.clip != null)
+                    {
+                        audioSource.PlayOneShot(audioSource.clip);
+                    }
+                }
+            }
+            else
+            {
+                Debug.LogError("AudioSource component not found");
+            }
+        }
+        else
+        {
+            Debug.LogError("AudioSFX object not found");
+        }
+        
         // Проверяем, можно ли добавить фигуру в ActionBar
         if (ActionBar.Instance != null)
         {
@@ -272,7 +309,7 @@ public class Figure : MonoBehaviour, IPointerClickHandler
             .OnComplete(() => {
                 if (this != null && gameObject != null && ActionBar.Instance != null)
                 {
-                    if (animal == FigureAnimal.bomb)
+                    if (Animal == FigureAnimal.bomb)
                     {
                         ExplodeInActionBar();
                     }
@@ -321,6 +358,13 @@ public class Figure : MonoBehaviour, IPointerClickHandler
             // Удаляем саму бомбу
             if (this != null && ActionBar.Instance != null)
                 ActionBar.Instance.RemoveFigure(this);
+            
+            // Добавляем задержку и проверяем победу
+            yield return new WaitForSeconds(0.1f);
+            if (ActionBar.Instance != null)
+            {
+                ActionBar.Instance.CheckWinCondition();
+            }
         }
     }
 
@@ -415,4 +459,6 @@ public class Figure : MonoBehaviour, IPointerClickHandler
             }
         }
     }
+
+    public FigureAnimal Animal => animal;
 }

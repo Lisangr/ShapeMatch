@@ -250,6 +250,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d668aabf031582d47b3a0496c4e588d0, type: 3}
+--- !u!82 &45480735 stripped
+AudioSource:
+  m_CorrespondingSourceObject: {fileID: 5088650879249748541, guid: d668aabf031582d47b3a0496c4e588d0, type: 3}
+  m_PrefabInstance: {fileID: 45480734}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &165165234
 GameObject:
   m_ObjectHideFlags: 0
@@ -392,6 +397,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8cb5f04e50f62eb4cb4ea5170814bb5e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  audioSFX: {fileID: 45480735}
 --- !u!114 &165165241
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -409,6 +415,7 @@ MonoBehaviour:
   menuSceneName: Menu
   gamePanels:
   - {fileID: 1181715226}
+  audioSFX: {fileID: 45480735}
 --- !u!1 &201436700
 GameObject:
   m_ObjectHideFlags: 0
@@ -536,6 +543,18 @@ MonoBehaviour:
       - m_Target: {fileID: 165165241}
         m_TargetAssemblyTypeName: MenuManager, Assembly-CSharp
         m_MethodName: ReturnToMenu
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 165165240}
+        m_TargetAssemblyTypeName: GameManager, Assembly-CSharp
+        m_MethodName: StopAllSounds
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -1813,6 +1832,18 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+      - m_Target: {fileID: 165165240}
+        m_TargetAssemblyTypeName: GameManager, Assembly-CSharp
+        m_MethodName: StopAllSounds
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1323074782
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2174,6 +2205,7 @@ MonoBehaviour:
   slotsParent: {fileID: 1597930257}
   scoreText: {fileID: 0}
   defeatPanel: {fileID: 1902756848}
+  audioSFX: {fileID: 45480735}
   maxSlots: 7
   slotSpacing: 100
   slotOffset: {x: 0, y: 0}

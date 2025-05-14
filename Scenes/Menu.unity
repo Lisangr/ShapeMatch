@@ -133,6 +133,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9085046f02f69544eb97fd06b6048fe2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!82 &381872824 stripped
+AudioSource:
+  m_CorrespondingSourceObject: {fileID: 5088650879249748541, guid: d668aabf031582d47b3a0496c4e588d0, type: 3}
+  m_PrefabInstance: {fileID: 1751682933161158108}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &469994138 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6285049046461643818, guid: 672b7f17901f56c46835fa7ffa9445fa, type: 3}
@@ -1478,6 +1483,7 @@ MonoBehaviour:
   menuSceneName: Menu
   gamePanels:
   - {fileID: 1093433077}
+  audioSFX: {fileID: 381872824}
 --- !u!1 &9079081800760502466
 GameObject:
   m_ObjectHideFlags: 0

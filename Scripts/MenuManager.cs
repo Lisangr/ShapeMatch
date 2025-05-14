@@ -11,6 +11,9 @@ public class MenuManager : MonoBehaviour
     [Header("Active Panels")]
     [SerializeField] private GameObject[] gamePanels; // Массив всех панелей в игре
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource audioSFX; // AudioSource для воспроизведения звуков
+
     private void Start()
     {
         // Убеждаемся, что панель настроек скрыта при старте
@@ -66,15 +69,34 @@ public class MenuManager : MonoBehaviour
         }
     }
 
+    private void PlayClickSound()
+    {
+        if (audioSFX != null)
+        {
+            AudioClip clickClip = Resources.Load<AudioClip>("Audio/Click");
+            if (clickClip != null)
+            {
+                audioSFX.PlayOneShot(clickClip);
+            }
+        }
+    }
+
     // Метод для кнопки "Играть"
     public void PlayGame()
     {
+        PlayClickSound();
+        // Останавливаем все звуки перед переходом на новую сцену
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.StopAllSounds();
+        }
         SceneManager.LoadScene(gameSceneName);
     }
 
     // Метод для кнопки "Настройки"
     public void ToggleSettings()
     {
+        PlayClickSound();
         if (settingsPanel != null)
         {
             settingsPanel.SetActive(!settingsPanel.activeSelf);
@@ -84,6 +106,7 @@ public class MenuManager : MonoBehaviour
     // Метод для кнопки "Выйти"
     public void QuitGame()
     {
+        PlayClickSound();
         #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;
         #elif UNITY_ANDROID
@@ -94,6 +117,7 @@ public class MenuManager : MonoBehaviour
     // Метод для кнопки "Закрыть настройки" или "Назад"
     public void CloseSettings()
     {
+        PlayClickSound();
         if (settingsPanel != null)
         {
             settingsPanel.SetActive(false);
@@ -103,12 +127,19 @@ public class MenuManager : MonoBehaviour
     // Метод для возврата в главное меню
     public void ReturnToMenu()
     {
+        PlayClickSound();
+        // Останавливаем все звуки перед переходом на новую сцену
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.StopAllSounds();
+        }
         SceneManager.LoadScene(menuSceneName);
     }
 
     // Метод для закрытия любой активной панели
     public void CloseActivePanel(GameObject panel)
     {
+        PlayClickSound();
         if (panel != null)
         {
             panel.SetActive(false);

@@ -41,17 +41,9 @@ public class SoundManager : MonoBehaviour
 
     private void Awake()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-            SetupToggles();
-            LoadSettings();
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
+        Instance = this;
+        SetupToggles();
+        LoadSettings();
     }
 
     private void SetupToggles()
