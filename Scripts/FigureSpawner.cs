@@ -10,6 +10,7 @@ public class FigureSpawner : MonoBehaviour
     [SerializeField] private FigurePool figurePool;
     [SerializeField] private RectTransform spawnArea;
     [SerializeField] private Transform spawnParent;
+    [SerializeField] private List<Transform> spawnPoints; // Список точек спавна
 
     [Header("Spawn Settings")]
     [SerializeField] private float spawnDelay = 0.5f;
@@ -45,6 +46,11 @@ public class FigureSpawner : MonoBehaviour
 
     private void Start()
     {
+        if (spawnPoints == null || spawnPoints.Count == 0)
+        {
+            Debug.LogError("No spawn points assigned in FigureSpawner.");
+            return;
+        }
         BuildSpawnQueue();
         StartCoroutine(SpawnRoutine());
     }
@@ -79,12 +85,15 @@ public class FigureSpawner : MonoBehaviour
         }
         template = template.OrderBy(_ => rnd.Next()).ToList();
 
+        // Добавляем специальные фигуры
+        template.Add((FigureShape.circle, FigureColor.Red, FigureAnimal.stink));
+        template.Add((FigureShape.triangle, FigureColor.Blue, FigureAnimal.bomb));
+
         var corners = new Vector3[4];
         spawnArea.GetWorldCorners(corners);
         float top = corners[1].y;
 
-        // Распределяем фигуры по ширине равномерно
-        float stepWidth = spawnWidth / (template.Count - 1);
+        // Распределяем фигуры по точкам спавна
         for (int i = 0; i < template.Count; i++)
         {
             var (sh, c, a) = template[i];
@@ -94,12 +103,9 @@ public class FigureSpawner : MonoBehaviour
             fig.transform.SetParent(spawnParent, true);
             fig.Initialize(sh, c, a, animalSprites[a]);
 
-            // Вычисляем позицию спавна с небольшой случайностью
-            float baseX = leftBoundary + (i * stepWidth);
-            float randomOffset = UnityEngine.Random.Range(-stepWidth * 0.3f, stepWidth * 0.3f);
-            float spawnX = Mathf.Clamp(baseX + randomOffset, leftBoundary, rightBoundary);
-            
-            fig.transform.position = new Vector3(spawnX, top + topOffset, 0);
+            // Выбираем случайную точку спавна
+            Transform spawnPoint = spawnPoints[UnityEngine.Random.Range(0, spawnPoints.Count)];
+            fig.transform.position = spawnPoint.position;
             spawnQueue.Enqueue(fig);
         }
     }

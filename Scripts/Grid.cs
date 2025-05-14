@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.UI;
 using DG.Tweening;
 
 [System.Serializable]
@@ -15,14 +14,12 @@ public class Grid : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private List<TagPoints> pointsPerTagList = new List<TagPoints>();
-    [SerializeField] private Text scoreText;
     [SerializeField] private GameObject defeatPanel;
 
     [Header("Animation")]
     [SerializeField] private float matchAnimationDuration = 0.5f;
 
     private Dictionary<string, int> pointsPerTag;
-    private int totalScore = 0;
 
     private void Start()
     {
@@ -70,8 +67,6 @@ public class Grid : MonoBehaviour
         if (matchedFigures.Count != 3) return;
 
         string tag = matchedFigures[0].tag;
-        totalScore += pointsPerTag[tag] * 3;
-        UpdateScoreUI();
 
         foreach (var figure in matchedFigures)
         {
@@ -87,15 +82,6 @@ public class Grid : MonoBehaviour
             .Join(figure.transform.DORotate(new Vector3(0, 360, 0), matchAnimationDuration, RotateMode.FastBeyond360))
             .OnComplete(() => Destroy(figure.gameObject));
     }
-
-    private void UpdateScoreUI()
-    {
-        if (scoreText != null)
-        {
-            scoreText.text = totalScore.ToString();
-        }
-    }
-
     private void CheckDefeatCondition()
     {
         int figuresCount = transform.childCount;

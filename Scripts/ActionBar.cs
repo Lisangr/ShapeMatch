@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine.UI;
+using System.Collections;
 
 public class ActionBar : MonoBehaviour
 {
@@ -83,10 +84,13 @@ public class ActionBar : MonoBehaviour
 
     public void AddFigure(Figure fig)
     {
+        // Проверка на максимальное количество слотов
         if (slots.Count >= maxSlots)
         {
             Debug.Log("ActionBar is full!");
             GameManager.Instance.OnGameOver(false);
+            // Уничтожаем фигуру, чтобы она не осталась висеть в пространстве
+            Destroy(fig.gameObject);
             return;
         }
 
@@ -127,26 +131,61 @@ public class ActionBar : MonoBehaviour
 
         // После завершения анимации проверяем совпадения
         moveSequence.OnComplete(() => {
-            CheckMatches();
+            if (this != null && fig != null)
+            {
+                CheckMatches();
+                // Добавляем небольшую задержку и потом проверяем победу
+                StartCoroutine(DelayedWinCheck());
+            }
         });
+    }
+
+    private IEnumerator DelayedWinCheck()
+    {
+        yield return new WaitForSeconds(0.1f);
+        CheckWinCondition();
     }
 
     private void CheckMatches()
     {
         if (slots.Count < 3) return;
 
-        int lastIndex = slots.Count - 1;
-        if (lastIndex >= 2)
+        // Подсчитываем количество каждого типа фигур
+        Dictionary<string, List<Figure>> figureGroups = new Dictionary<string, List<Figure>>();
+        
+        foreach (var fig in slots)
         {
-            var last3 = slots.GetRange(lastIndex - 2, 3);
-            if (AreMatching(last3))
+            if (fig != null)
             {
-                foreach (var fig in last3)
+                string key = fig.MatchKey;
+                if (!figureGroups.ContainsKey(key))
+                    figureGroups[key] = new List<Figure>();
+                figureGroups[key].Add(fig);
+            }
+        }
+        
+        // Ищем группы из 3 или более одинаковых фигур
+        foreach (var group in figureGroups)
+        {
+            if (group.Value.Count >= 3)
+            {
+                // Удаляем 3 фигуры этого типа
+                for (int i = 0; i < 3; i++)
                 {
+                    var fig = group.Value[i];
                     AnimateAndDestroyFigure(fig);
+                    slots.Remove(fig);
                 }
-                slots.RemoveRange(lastIndex - 2, 3);
+                
+                // Перестраиваем ActionBar после удаления
+                RearrangeFigures();
+                
+                // Проверяем условие победы
                 CheckWinCondition();
+                
+                // Проверяем еще раз, возможно есть другие совпадения
+                CheckMatches();
+                return;
             }
         }
     }
@@ -178,7 +217,21 @@ public class ActionBar : MonoBehaviour
         
         foreach (var fig in remainingFigures)
         {
-            if (!slots.Contains(fig))
+            // Проверяем, является ли родитель фигуры частью ActionBar
+            bool isInActionBar = false;
+            Transform parent = fig.transform.parent;
+            while (parent != null)
+            {
+                if (parent == transform)
+                {
+                    isInActionBar = true;
+                    break;
+                }
+                parent = parent.parent;
+            }
+            
+            // Считаем только фигуры, которые не в ActionBar
+            if (!isInActionBar)
             {
                 figuresInPlay++;
             }
@@ -187,6 +240,66 @@ public class ActionBar : MonoBehaviour
         if (figuresInPlay == 0)
         {
             GameManager.Instance.OnGameOver(true);
+        }
+    }
+
+    public List<Figure> GetFigures()
+    {
+        return slots;
+    }
+
+    public void RemoveFigure(Figure figure)
+    {
+        if (!slots.Contains(figure)) return;
+
+        // Анимируем уничтожение фигуры
+        AnimateAndDestroyFigure(figure);
+        
+        // Удаляем фигуру из списка
+        slots.Remove(figure);
+        
+        // Сдвигаем оставшиеся фигуры
+        RearrangeFigures();
+    }
+
+    private void RearrangeFigures()
+    {
+        // Перемещаем все фигуры на свои новые позиции
+        for (int i = 0; i < slots.Count; i++)
+        {
+            Figure fig = slots[i];
+            RectTransform slotTransform = slotTransforms[i];
+            
+            // Анимируем перемещение фигуры на новую позицию
+            Sequence moveSequence = DOTween.Sequence();
+            
+            moveSequence.Append(fig.transform.DOMove(slotTransform.position, moveDuration)
+                .SetEase(moveEase));
+                
+            // Делаем фигуру дочерним объектом нового слота
+            fig.transform.SetParent(slotTransform, true);
+        }
+    }
+
+    public void ClearAllFigures()
+    {
+        // Очищаем все фигуры из ActionBar
+        foreach (var figure in slots)
+        {
+            if (figure != null)
+            {
+                Destroy(figure.gameObject);
+            }
+        }
+        slots.Clear();
+        
+        // Очищаем слоты от дочерних объектов
+        foreach (var slotTransform in slotTransforms)
+        {
+            foreach (Transform child in slotTransform)
+            {
+                Destroy(child.gameObject);
+            }
         }
     }
 

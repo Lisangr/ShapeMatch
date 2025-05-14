@@ -37,7 +37,9 @@ public enum FigureAnimal
     pinguin,
     rabbit,
     sheep,
-    unicorn
+    unicorn,
+    stink,
+    bomb
 }
 
 [RequireComponent(typeof(Rigidbody2D), typeof(SpriteRenderer))]
@@ -66,8 +68,10 @@ public class Figure : MonoBehaviour, IPointerClickHandler
     public string MatchKey => $"{shape}-{color}-{animal}";
     private Rigidbody2D rb;
     private Collider2D col2d;
-    private Sequence moveSequence;
+    private Sequence currentSequence;
     private MoveToGrid moveToGrid;
+    private float lastMovementTime;
+    private Vector3 lastPosition;
 
     private static readonly Dictionary<FigureColor, Color> colorMap = new Dictionary<FigureColor, Color>
     {
@@ -91,7 +95,8 @@ public class Figure : MonoBehaviour, IPointerClickHandler
     private void OnDestroy()
     {
         // Убеждаемся, что все твины остановлены
-        moveSequence?.Kill();
+        currentSequence?.Kill();
+        StopAllCoroutines();
     }
 
     public void Initialize(FigureShape newShape, FigureColor newColor, FigureAnimal newAnimal, Sprite animalSp)
@@ -151,55 +156,20 @@ public class Figure : MonoBehaviour, IPointerClickHandler
         Sprite sprite = frameImage.sprite;
         if (sprite == null) return;
 
-        // Получаем реальные размеры спрайта в юнитах и увеличиваем их в 10 раз
-        float pixelsPerUnit = sprite.pixelsPerUnit;
-        float spriteWidth = (sprite.rect.width / pixelsPerUnit) * 10f;
-        float spriteHeight = (sprite.rect.height / pixelsPerUnit) * 10f;
-
-        // Учитываем масштаб объекта
-        Vector3 scale = transform.lossyScale;
-        spriteWidth *= scale.x;
-        spriteHeight *= scale.y;
-
-        switch (shape)
+        // Используем ТОЛЬКО CircleCollider2D для ВСЕХ фигур
+        col2d = gameObject.AddComponent<CircleCollider2D>();
+        var circleCollider = (CircleCollider2D)col2d;
+        
+        // Настройка радиуса и позиции в зависимости от формы
+        if (shape == FigureShape.triangle)
         {
-            case FigureShape.circle:
-                col2d = gameObject.AddComponent<CircleCollider2D>();
-                var circ = (CircleCollider2D)col2d;
-                circ.radius = spriteWidth * 0.5f;
-                break;
-
-            case FigureShape.squad:
-                col2d = gameObject.AddComponent<BoxCollider2D>();
-                var box = (BoxCollider2D)col2d;
-                box.size = new Vector2(spriteWidth, spriteHeight);
-                break;
-
-            case FigureShape.triangle:
-                col2d = gameObject.AddComponent<PolygonCollider2D>();
-                var triPoly = (PolygonCollider2D)col2d;
-                Vector2[] trianglePoints = new Vector2[]
-                {
-                    new Vector2(-spriteWidth/2, -spriteHeight/2),
-                    new Vector2(spriteWidth/2, -spriteHeight/2),
-                    new Vector2(0, spriteHeight/2)
-                };
-                triPoly.points = trianglePoints;
-                break;
-
-            case FigureShape.traped:
-                col2d = gameObject.AddComponent<PolygonCollider2D>();
-                var trapPoly = (PolygonCollider2D)col2d;
-                float trapTopWidth = spriteWidth * 0.6f; // Верхняя часть трапеции 60% от ширины
-                Vector2[] trapPoints = new Vector2[]
-                {
-                    new Vector2(-spriteWidth/2, -spriteHeight/2),
-                    new Vector2(spriteWidth/2, -spriteHeight/2),
-                    new Vector2(trapTopWidth/2, spriteHeight/2),
-                    new Vector2(-trapTopWidth/2, spriteHeight/2)
-                };
-                trapPoly.points = trapPoints;
-                break;
+            circleCollider.radius = 27f;
+            circleCollider.offset = new Vector2(0, -9f);
+        }
+        else
+        {
+            circleCollider.radius = 41f;
+            circleCollider.offset = Vector2.zero;
         }
 
         // Настройка физических свойств
@@ -209,17 +179,18 @@ public class Figure : MonoBehaviour, IPointerClickHandler
         rb.interpolation = RigidbodyInterpolation2D.Interpolate;
         rb.constraints = RigidbodyConstraints2D.FreezeRotation;
         
-        // Настройка материала физики для лучшего взаимодействия
+        // Важно! Настраиваем физику для избежания пирамид
+        rb.drag = 1.0f;        // Увеличиваем сопротивление воздуха
+        rb.angularDrag = 5.0f; // Сильное сопротивление вращению
+        rb.mass = 1.0f;        // Стандартная масса
+        
+        // Создаем специальный материал для предотвращения пирамид
         if (col2d != null)
         {
-            col2d.sharedMaterial = new PhysicsMaterial2D
-            {
-                friction = 0.4f,
-                bounciness = 0.1f
-            };
-            
-            // Устанавливаем смещение коллайдера, чтобы он точно совпадал со спрайтом
-            col2d.offset = sprite.bounds.center;
+            PhysicsMaterial2D antiStackMaterial = new PhysicsMaterial2D("AntiStack");
+            antiStackMaterial.friction = 0.1f;     // Очень низкое трение
+            antiStackMaterial.bounciness = 0.0f;   // Никакой упругости
+            col2d.sharedMaterial = antiStackMaterial;
         }
     }
 
@@ -245,7 +216,7 @@ public class Figure : MonoBehaviour, IPointerClickHandler
 
     public void Deactivate()
     {
-        moveSequence?.Kill();
+        currentSequence?.Kill();
         if (rb == null)
             rb = GetComponent<Rigidbody2D>();
         if (rb != null)
@@ -263,15 +234,115 @@ public class Figure : MonoBehaviour, IPointerClickHandler
         Debug.Log("Figure clicked!");
         
         // Проверяем, можно ли добавить фигуру в ActionBar
-        if (ActionBar.Instance != null && ActionBar.Instance.CanAddFigure())
+        if (ActionBar.Instance != null)
         {
-            isClickable = false;
-            TogglePhysics(false);
-            ActionBar.Instance.AddFigure(this);
+            if (ActionBar.Instance.CanAddFigure())
+            {
+                isClickable = false;
+                TogglePhysics(false);
+                AnimateToActionBar();
+            }
+            else
+            {
+                // Если места нет - сразу показываем экран поражения
+                GameManager.Instance.OnGameOver(false);
+            }
         }
         else if (moveToGrid != null)
         {
             moveToGrid.OnPointerClick();
+        }
+    }
+
+    public void AnimateToActionBar()
+    {
+        if (ActionBar.Instance == null) return;
+
+        Vector3 targetPosition = ActionBar.Instance.transform.position;
+        
+        // Убиваем предыдущую анимацию, если она есть
+        currentSequence?.Kill();
+        
+        // Создаем новую анимацию
+        currentSequence = DOTween.Sequence();
+
+        // Анимация прыжка и перемещения
+        currentSequence.Append(transform.DOJump(targetPosition, jumpPower, jumpCount, moveDuration)
+            .SetEase(moveEase))
+            .OnComplete(() => {
+                if (this != null && gameObject != null && ActionBar.Instance != null)
+                {
+                    if (animal == FigureAnimal.bomb)
+                    {
+                        ExplodeInActionBar();
+                    }
+                    ActionBar.Instance.AddFigure(this);
+                }
+            });
+    }
+
+    private void ExplodeInActionBar()
+    {
+        // Проверяем, что ActionBar все еще существует
+        if (ActionBar.Instance == null) return;
+        StartCoroutine(ExplodeNextFrame());
+    }
+
+    private IEnumerator ExplodeNextFrame()
+    {
+        yield return null;  // Ждем следующий кадр
+
+        // Проверяем, что объекты все еще существуют
+        if (this == null || ActionBar.Instance == null) yield break;
+
+        // Получаем список фигур из ActionBar
+        var actionBarFigures = ActionBar.Instance.GetFigures();
+        if (actionBarFigures == null) yield break;
+
+        int index = actionBarFigures.IndexOf(this);
+        
+        if (index >= 0)
+        {
+            List<Figure> figuresToDestroy = new List<Figure>();
+            
+            // Добавляем соседние фигуры в список на удаление
+            if (index > 0 && index - 1 < actionBarFigures.Count) 
+                figuresToDestroy.Add(actionBarFigures[index - 1]);
+            if (index < actionBarFigures.Count - 1) 
+                figuresToDestroy.Add(actionBarFigures[index + 1]);
+            
+            // Анимируем и удаляем фигуры
+            foreach (var fig in figuresToDestroy)
+            {
+                if (fig != null)
+                    ActionBar.Instance.RemoveFigure(fig);
+            }
+            
+            // Удаляем саму бомбу
+            if (this != null && ActionBar.Instance != null)
+                ActionBar.Instance.RemoveFigure(this);
+        }
+    }
+
+    public void OnFall()
+    {
+        if (animal == FigureAnimal.stink)
+        {
+            PullNeighboringFigure();
+        }
+    }
+
+    private void PullNeighboringFigure()
+    {
+        // Логика для притягивания соседней фигуры
+        var allFigures = FindObjectsOfType<Figure>();
+        foreach (var fig in allFigures)
+        {
+            if (fig != this && Vector3.Distance(fig.transform.position, transform.position) < 1.5f)
+            {
+                fig.transform.DOMove(transform.position, 0.5f).SetEase(Ease.InOutQuad);
+                break;
+            }
         }
     }
 
@@ -286,5 +357,62 @@ public class Figure : MonoBehaviour, IPointerClickHandler
         isClickable = true;
         TogglePhysics(true);
         transform.localScale = Vector3.one;
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        // Проверяем, если фигура коснулась другой фигуры
+        Figure otherFigure = collision.gameObject.GetComponent<Figure>();
+        if (otherFigure != null)
+        {
+            // Добавляем небольшую случайную силу для предотвращения стакинга
+            Vector2 separationForce = (transform.position - collision.transform.position).normalized;
+            separationForce += new Vector2(UnityEngine.Random.Range(-0.1f, 0.1f), 0);
+            
+            if (rb != null)
+            {
+                rb.AddForce(separationForce * 0.5f, ForceMode2D.Impulse);
+            }
+        }
+    }
+
+    private void OnCollisionStay2D(Collision2D collision)
+    {
+        // Если фигура долго находится в контакте с другой
+        Figure otherFigure = collision.gameObject.GetComponent<Figure>();
+        if (otherFigure != null)
+        {
+            // Проверяем, не застряли ли мы
+            if (rb != null && rb.velocity.magnitude < 0.1f)
+            {
+                // Добавляем силу разделения
+                Vector2 separation = (transform.position - collision.transform.position).normalized;
+                separation.x += UnityEngine.Random.Range(-0.2f, 0.2f); // Добавляем случайность по X
+                rb.AddForce(separation * 0.3f, ForceMode2D.Impulse);
+            }
+        }
+    }
+
+    private void Update()
+    {
+        // Проверяем, двигается ли фигура
+        if (Vector3.Distance(transform.position, lastPosition) > 0.01f)
+        {
+            lastMovementTime = Time.time;
+            lastPosition = transform.position;
+        }
+        
+        // Если фигура не двигалась 2 секунды и она "висит" в воздухе
+        if (Time.time - lastMovementTime > 2.0f && transform.position.y > 0 && rb != null)
+        {
+            // Проверяем, есть ли что-то под нами
+            RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, 2.0f);
+            if (hit.collider == null || hit.distance > 1.5f)
+            {
+                // Если ничего нет, добавляем силу вниз
+                rb.AddForce(Vector2.down * 2.0f, ForceMode2D.Impulse);
+                lastMovementTime = Time.time; // Сбрасываем счетчик
+            }
+        }
     }
 }

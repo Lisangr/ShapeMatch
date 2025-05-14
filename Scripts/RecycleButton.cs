@@ -10,6 +10,12 @@ public class RecycleButton : MonoBehaviour
     {
         recycleBtn.onClick.AddListener(() =>
         {
+            // Очищаем ActionBar от всех фигур
+            if (ActionBar.Instance != null)
+            {
+                ActionBar.Instance.ClearAllFigures();
+            }
+            
             GameFieldLogic.Instance.ClearField();
             spawner.RestartSpawning();
         });

@@ -142,7 +142,7 @@ GameObject:
   - component: {fileID: 2596950167343816115}
   - component: {fileID: 965258357695060784}
   - component: {fileID: 4888847537579714531}
-  - component: {fileID: 3240140521729556108}
+  - component: {fileID: -2603981259675384785}
   m_Layer: 5
   m_Name: FigurePrefab
   m_TagString: Untagged
@@ -159,7 +159,7 @@ RectTransform:
   m_GameObject: {fileID: 7525282087426894324}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 2, y: 2, z: 1}
+  m_LocalScale: {x: 1.8, y: 1.8, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5909863210028093126}
@@ -221,11 +221,11 @@ Rigidbody2D:
   m_Simulated: 1
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
-  m_Mass: 1
+  m_Mass: 10
   m_LinearDrag: 0
   m_AngularDrag: 0.05
-  m_GravityScale: 1
-  m_Material: {fileID: 0}
+  m_GravityScale: 10
+  m_Material: {fileID: 6200000, guid: ba4191c2c195ebb43953f0e4ca238ae7, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -309,7 +309,7 @@ MonoBehaviour:
   jumpPower: 20
   jumpCount: 1
   moveEase: 32
---- !u!114 &3240140521729556108
+--- !u!114 &-2603981259675384785
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
