@@ -11,7 +11,7 @@ public enum FigureShape
     circle,
     squad,
     traped,
-    triangle
+    //triangle
 }
 
 public enum FigureColor
@@ -61,6 +61,15 @@ public class Figure : MonoBehaviour, IPointerClickHandler
     [SerializeField] private int jumpCount = 1;
     [SerializeField] private Ease moveEase = Ease.OutQuad;
 
+    [Header("Falling Variability")]
+    [SerializeField] private float minGravityScale = 0.8f;
+    [SerializeField] private float maxGravityScale = 1.2f;
+    [SerializeField] private float rotationChance = 0.3f;
+    [SerializeField] private float maxRotationSpeed = 180f;
+    [SerializeField] private float turbulenceChance = 0.4f;
+    [SerializeField] private float maxTurbulenceForce = 2f;
+    [SerializeField] private float turbulenceInterval = 0.5f;
+
     private FigureShape shape;
     private FigureColor color;
     private FigureAnimal animal;
@@ -74,6 +83,8 @@ public class Figure : MonoBehaviour, IPointerClickHandler
     private float lastMovementTime;
     private Vector3 lastPosition;
     private AudioSource cachedAudioSFX;
+    private float nextTurbulenceTime;
+    private bool isFalling = false;
 
     private static readonly Dictionary<FigureColor, Color> colorMap = new Dictionary<FigureColor, Color>
     {
@@ -92,6 +103,27 @@ public class Figure : MonoBehaviour, IPointerClickHandler
         rb.constraints = RigidbodyConstraints2D.FreezeRotation;
         moveToGrid = GetComponent<MoveToGrid>();
         ConfigureCollider();
+        InitializeFallingVariability();
+    }
+
+    private void InitializeFallingVariability()
+    {
+        if (rb == null) return;
+
+        // Случайная гравитация
+        float randomGravityScale = UnityEngine.Random.Range(minGravityScale, maxGravityScale);
+        rb.gravityScale = randomGravityScale;
+
+        // Случайная ротация
+        if (UnityEngine.Random.value < rotationChance)
+        {
+            rb.constraints = RigidbodyConstraints2D.None; // Разблокируем ротацию
+            float randomRotationSpeed = UnityEngine.Random.Range(-maxRotationSpeed, maxRotationSpeed);
+            rb.angularVelocity = randomRotationSpeed;
+        }
+
+        // Инициализация времени следующей турбулентности
+        nextTurbulenceTime = Time.time + UnityEngine.Random.Range(0f, turbulenceInterval);
     }
 
     private void OnDestroy()
@@ -161,12 +193,12 @@ public class Figure : MonoBehaviour, IPointerClickHandler
         // Используем ТОЛЬКО CircleCollider2D для ВСЕХ фигур
         col2d = gameObject.AddComponent<CircleCollider2D>();
         var circleCollider = (CircleCollider2D)col2d;
-        
+
         // Настройка радиуса и позиции в зависимости от формы
-        if (shape == FigureShape.triangle)
+        if (shape == FigureShape.circle)
         {
-            circleCollider.radius = 27f;
-            circleCollider.offset = new Vector2(0, -9f);
+            circleCollider.radius = 41f;
+            circleCollider.offset = Vector2.zero;
         }
         else
         {
@@ -180,12 +212,12 @@ public class Figure : MonoBehaviour, IPointerClickHandler
         rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
         rb.interpolation = RigidbodyInterpolation2D.Interpolate;
         rb.constraints = RigidbodyConstraints2D.FreezeRotation;
-        
+
         // Важно! Настраиваем физику для избежания пирамид
         rb.drag = 1.0f;        // Увеличиваем сопротивление воздуха
         rb.angularDrag = 5.0f; // Сильное сопротивление вращению
         rb.mass = 1.0f;        // Стандартная масса
-        
+
         // Создаем специальный материал для предотвращения пирамид
         if (col2d != null)
         {
@@ -232,9 +264,9 @@ public class Figure : MonoBehaviour, IPointerClickHandler
     public void OnPointerClick(PointerEventData eventData)
     {
         if (!isClickable) return;
-        
+
         Debug.Log("Figure clicked!");
-        
+
         // Воспроизводим звук Action при клике
         GameObject audioSFXObj = GameObject.Find("AudioSFX");
         if (audioSFXObj != null)
@@ -269,7 +301,7 @@ public class Figure : MonoBehaviour, IPointerClickHandler
         {
             Debug.LogError("AudioSFX object not found");
         }
-        
+
         // Проверяем, можно ли добавить фигуру в ActionBar
         if (ActionBar.Instance != null)
         {
@@ -296,10 +328,10 @@ public class Figure : MonoBehaviour, IPointerClickHandler
         if (ActionBar.Instance == null) return;
 
         Vector3 targetPosition = ActionBar.Instance.transform.position;
-        
+
         // Убиваем предыдущую анимацию, если она есть
         currentSequence?.Kill();
-        
+
         // Создаем новую анимацию
         currentSequence = DOTween.Sequence();
 
@@ -337,28 +369,28 @@ public class Figure : MonoBehaviour, IPointerClickHandler
         if (actionBarFigures == null) yield break;
 
         int index = actionBarFigures.IndexOf(this);
-        
+
         if (index >= 0)
         {
             List<Figure> figuresToDestroy = new List<Figure>();
-            
+
             // Добавляем соседние фигуры в список на удаление
-            if (index > 0 && index - 1 < actionBarFigures.Count) 
+            if (index > 0 && index - 1 < actionBarFigures.Count)
                 figuresToDestroy.Add(actionBarFigures[index - 1]);
-            if (index < actionBarFigures.Count - 1) 
+            if (index < actionBarFigures.Count - 1)
                 figuresToDestroy.Add(actionBarFigures[index + 1]);
-            
+
             // Анимируем и удаляем фигуры
             foreach (var fig in figuresToDestroy)
             {
                 if (fig != null)
                     ActionBar.Instance.RemoveFigure(fig);
             }
-            
+
             // Удаляем саму бомбу
             if (this != null && ActionBar.Instance != null)
                 ActionBar.Instance.RemoveFigure(this);
-            
+
             // Добавляем задержку и проверяем победу
             yield return new WaitForSeconds(0.1f);
             if (ActionBar.Instance != null)
@@ -403,6 +435,53 @@ public class Figure : MonoBehaviour, IPointerClickHandler
         transform.localScale = Vector3.one;
     }
 
+    private void Update()
+    {
+        // Проверяем, двигается ли фигура
+        if (Vector3.Distance(transform.position, lastPosition) > 0.01f)
+        {
+            lastMovementTime = Time.time;
+            lastPosition = transform.position;
+            isFalling = rb.velocity.y < -0.1f;
+        }
+
+        // Применяем турбулентность во время падения
+        if (isFalling && Time.time >= nextTurbulenceTime)
+        {
+            ApplyTurbulence();
+            nextTurbulenceTime = Time.time + turbulenceInterval;
+        }
+
+        // Если фигура не двигалась 2 секунды и она "висит" в воздухе
+        if (Time.time - lastMovementTime > 2.0f && transform.position.y > 0 && rb != null)
+        {
+            // Проверяем, есть ли что-то под нами
+            RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, 2.0f);
+            if (hit.collider == null || hit.distance > 1.5f)
+            {
+                // Если ничего нет, добавляем силу вниз
+                rb.AddForce(Vector2.down * 2.0f, ForceMode2D.Impulse);
+                lastMovementTime = Time.time;
+            }
+        }
+    }
+
+    private void ApplyTurbulence()
+    {
+        if (rb == null || !isFalling) return;
+
+        if (UnityEngine.Random.value < turbulenceChance)
+        {
+            // Создаем случайную силу в горизонтальном направлении
+            float randomForce = UnityEngine.Random.Range(-maxTurbulenceForce, maxTurbulenceForce);
+            Vector2 turbulenceForce = new Vector2(randomForce, 0);
+            
+            // Применяем силу с небольшим случайным отклонением вверх
+            turbulenceForce.y = UnityEngine.Random.Range(-0.5f, 0.5f);
+            rb.AddForce(turbulenceForce, ForceMode2D.Impulse);
+        }
+    }
+
     private void OnCollisionEnter2D(Collision2D collision)
     {
         // Проверяем, если фигура коснулась другой фигуры
@@ -412,10 +491,16 @@ public class Figure : MonoBehaviour, IPointerClickHandler
             // Добавляем небольшую случайную силу для предотвращения стакинга
             Vector2 separationForce = (transform.position - collision.transform.position).normalized;
             separationForce += new Vector2(UnityEngine.Random.Range(-0.1f, 0.1f), 0);
-            
+
             if (rb != null)
             {
                 rb.AddForce(separationForce * 0.5f, ForceMode2D.Impulse);
+            }
+
+            // Останавливаем ротацию при столкновении
+            if (rb != null && rb.constraints == RigidbodyConstraints2D.None)
+            {
+                rb.angularVelocity *= 0.5f;
             }
         }
     }
@@ -433,29 +518,6 @@ public class Figure : MonoBehaviour, IPointerClickHandler
                 Vector2 separation = (transform.position - collision.transform.position).normalized;
                 separation.x += UnityEngine.Random.Range(-0.2f, 0.2f); // Добавляем случайность по X
                 rb.AddForce(separation * 0.3f, ForceMode2D.Impulse);
-            }
-        }
-    }
-
-    private void Update()
-    {
-        // Проверяем, двигается ли фигура
-        if (Vector3.Distance(transform.position, lastPosition) > 0.01f)
-        {
-            lastMovementTime = Time.time;
-            lastPosition = transform.position;
-        }
-        
-        // Если фигура не двигалась 2 секунды и она "висит" в воздухе
-        if (Time.time - lastMovementTime > 2.0f && transform.position.y > 0 && rb != null)
-        {
-            // Проверяем, есть ли что-то под нами
-            RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, 2.0f);
-            if (hit.collider == null || hit.distance > 1.5f)
-            {
-                // Если ничего нет, добавляем силу вниз
-                rb.AddForce(Vector2.down * 2.0f, ForceMode2D.Impulse);
-                lastMovementTime = Time.time; // Сбрасываем счетчик
             }
         }
     }

@@ -305,10 +305,18 @@ MonoBehaviour:
   frameImage: {fileID: 743594119336460443}
   backgroundImage: {fileID: 5226250780020253097}
   animalImage: {fileID: 3890757036535740877}
+  audioSFX: {fileID: 0}
   moveDuration: 0.5
   jumpPower: 20
   jumpCount: 1
   moveEase: 32
+  minGravityScale: 7
+  maxGravityScale: 12
+  rotationChance: 0.6
+  maxRotationSpeed: 180
+  turbulenceChance: 0.4
+  maxTurbulenceForce: 2
+  turbulenceInterval: 0.5
 --- !u!114 &-2603981259675384785
 MonoBehaviour:
   m_ObjectHideFlags: 0

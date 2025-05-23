@@ -28,7 +28,6 @@ public class MoveToGrid : MonoBehaviour
     {
         if (!isActive || figure == null) return;
 
-        Debug.Log("MoveToGrid: Starting movement");
         figure.TogglePhysics(false);
         StartMoveToGrid();
     }
@@ -42,8 +41,6 @@ public class MoveToGrid : MonoBehaviour
 
         Vector3 startPosition = transform.position;
         Vector3 endPosition = gridTransform.position;
-
-        Debug.Log($"Moving from {startPosition} to {endPosition}");
 
         moveSequence = DOTween.Sequence();
 
@@ -60,7 +57,7 @@ public class MoveToGrid : MonoBehaviour
             .SetLoops(2, LoopType.Yoyo));
 
         moveSequence.OnComplete(() => {
-            Debug.Log("Movement completed");
+          
             transform.SetParent(gridTransform);
             gameObject.layer = newLayer;
             CheckAndDeactivateLayers();

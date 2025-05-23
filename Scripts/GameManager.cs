@@ -9,21 +9,21 @@ public class GameManager : MonoBehaviour
     
     private void Awake() => Instance = this;
     
-    public void OnGameOver(bool win)
+    public void OnGameOver(bool isWin)
     {
         // Воспроизводим соответствующий звук
         if (audioSFX != null)
         {
             AudioClip clip = null;
-            if (win)
+            if (isWin)
             {
                 clip = Resources.Load<AudioClip>("Audio/Win");
-                Debug.Log("Playing Win sound");
+
             }
             else
             {
                 clip = Resources.Load<AudioClip>("Audio/GameOver");
-                Debug.Log("Playing GameOver sound");
+
             }
             
             if (clip != null)
@@ -33,9 +33,15 @@ public class GameManager : MonoBehaviour
         }
         
         // Показываем соответствующую панель
-        if (win)
+        if (isWin)
         {
-            UIManager.Instance.ShowWin();
+            // Помечаем уровень как пройденный
+            if (LevelManager.Instance != null)
+            {
+                LevelManager.Instance.CompleteCurrentLevel();
+            }
+            
+            UIManager.Instance.ShowWinPanel();
         }
         else
         {

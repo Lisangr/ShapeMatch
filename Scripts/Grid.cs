@@ -88,7 +88,6 @@ public class Grid : MonoBehaviour
         if (figuresCount > 7 && defeatPanel != null)
         {
             defeatPanel.SetActive(true);
-            Time.timeScale = 0f;
         }
     }
 }

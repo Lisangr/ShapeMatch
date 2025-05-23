@@ -87,7 +87,7 @@ public class FigureSpawner : MonoBehaviour
 
         // Добавляем специальные фигуры
         template.Add((FigureShape.circle, FigureColor.Red, FigureAnimal.stink));
-        template.Add((FigureShape.triangle, FigureColor.Blue, FigureAnimal.bomb));
+        //template.Add((FigureShape.triangle, FigureColor.Blue, FigureAnimal.bomb));
 
         var corners = new Vector3[4];
         spawnArea.GetWorldCorners(corners);

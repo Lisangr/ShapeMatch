@@ -1,3 +1,4 @@
+
 using UnityEngine;
 using System.Collections.Generic;
 using DG.Tweening;
@@ -63,16 +64,16 @@ public class ActionBar : MonoBehaviour
             GameObject slotObj = new GameObject($"Slot_{i}");
             RectTransform rectTransform = slotObj.AddComponent<RectTransform>();
             rectTransform.SetParent(slotsParent, false);
-            
+
             // Настраиваем RectTransform слота
             rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
             rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
             rectTransform.pivot = new Vector2(0.5f, 0.5f);
             rectTransform.sizeDelta = new Vector2(100f, 100f); // Размер слота
-            
+
             Vector2 position = new Vector2(startX + (slotSpacing * i), 0) + slotOffset;
             rectTransform.anchoredPosition = position;
-            
+
             slotTransforms.Add(rectTransform);
             Debug.Log($"Created slot {i} at position {position}");
         }
@@ -94,7 +95,7 @@ public class ActionBar : MonoBehaviour
                 audioSFX.PlayOneShot(figureClickClip);
             }
         }
-        
+
         // Проверка на максимальное количество слотов
         if (slots.Count >= maxSlots)
         {
@@ -111,10 +112,10 @@ public class ActionBar : MonoBehaviour
 
         // Получаем трансформ слота
         RectTransform slotTransform = slotTransforms[slotIndex];
-        
+
         // Делаем фигуру дочерним объектом слота
         fig.transform.SetParent(slotTransform, true);
-        
+
         // Настраиваем RectTransform фигуры
         RectTransform figureRect = fig.transform as RectTransform;
         if (figureRect != null)
@@ -163,7 +164,7 @@ public class ActionBar : MonoBehaviour
 
         // Подсчитываем количество каждого типа фигур
         Dictionary<string, List<Figure>> figureGroups = new Dictionary<string, List<Figure>>();
-        
+
         foreach (var fig in slots)
         {
             if (fig != null)
@@ -174,7 +175,7 @@ public class ActionBar : MonoBehaviour
                 figureGroups[key].Add(fig);
             }
         }
-        
+
         // Ищем группы из 3 или более одинаковых фигур
         foreach (var group in figureGroups)
         {
@@ -187,13 +188,13 @@ public class ActionBar : MonoBehaviour
                     AnimateAndDestroyFigure(fig);
                     slots.Remove(fig);
                 }
-                
+
                 // Перестраиваем ActionBar после удаления
                 RearrangeFigures();
-                
+
                 // Проверяем условие победы
                 CheckWinCondition();
-                
+
                 // Проверяем еще раз, возможно есть другие совпадения
                 CheckMatches();
                 return;
@@ -217,7 +218,7 @@ public class ActionBar : MonoBehaviour
     private bool AreMatching(List<Figure> figures)
     {
         if (figures.Count != 3) return false;
-        return figures[0].MatchKey == figures[1].MatchKey && 
+        return figures[0].MatchKey == figures[1].MatchKey &&
                figures[1].MatchKey == figures[2].MatchKey;
     }
 
@@ -225,9 +226,9 @@ public class ActionBar : MonoBehaviour
     {
         var remainingFigures = FindObjectsOfType<Figure>();
         int figuresInPlay = 0;
-        
+
         Debug.Log($"Checking win condition. Total figures found: {remainingFigures.Length}");
-        
+
         foreach (var fig in remainingFigures)
         {
             // Проверяем, является ли родитель фигуры частью ActionBar
@@ -242,7 +243,7 @@ public class ActionBar : MonoBehaviour
                 }
                 parent = parent.parent;
             }
-            
+
             // Считаем только фигуры, которые не в ActionBar
             if (!isInActionBar)
             {
@@ -254,7 +255,7 @@ public class ActionBar : MonoBehaviour
                 Debug.Log($"Figure in ActionBar: {fig.name}, animal: {fig.Animal}");
             }
         }
-        
+
         Debug.Log($"Figures in play: {figuresInPlay}");
 
         if (figuresInPlay == 0)
@@ -275,10 +276,10 @@ public class ActionBar : MonoBehaviour
 
         // Анимируем уничтожение фигуры
         AnimateAndDestroyFigure(figure);
-        
+
         // Удаляем фигуру из списка
         slots.Remove(figure);
-        
+
         // Сдвигаем оставшиеся фигуры
         RearrangeFigures();
     }
@@ -290,13 +291,13 @@ public class ActionBar : MonoBehaviour
         {
             Figure fig = slots[i];
             RectTransform slotTransform = slotTransforms[i];
-            
+
             // Анимируем перемещение фигуры на новую позицию
             Sequence moveSequence = DOTween.Sequence();
-            
+
             moveSequence.Append(fig.transform.DOMove(slotTransform.position, moveDuration)
                 .SetEase(moveEase));
-                
+
             // Делаем фигуру дочерним объектом нового слота
             fig.transform.SetParent(slotTransform, true);
         }
@@ -313,7 +314,7 @@ public class ActionBar : MonoBehaviour
             }
         }
         slots.Clear();
-        
+
         // Очищаем слоты от дочерних объектов
         foreach (var slotTransform in slotTransforms)
         {
